@@ -1,6 +1,7 @@
+const {getWelcomeContent, getResetPasswordContent} = require('./emailContent');
 const nodemailer = require('nodemailer');
 
-exports.sendResetEmail = async (email, resetUrl) => {
+const sendEmail = async (email, subject, text) => {
     const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: process.env.EMAIL_PORT,
@@ -11,11 +12,22 @@ exports.sendResetEmail = async (email, resetUrl) => {
     });
 
     const message = {
-        from: `"SaaS App" <${process.env.EMAIL_USER}>`,
+        from: `"Canxer" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Password Reset',
-        text: `You requested a password reset. Please click the link to reset your password: ${resetUrl}`,
+        subject: subject,
+        text: text,
     };
 
     await transporter.sendMail(message);
 };
+
+
+exports.sendResetEmail = async (email, resetUrl) => {
+    const resetContent = getResetPasswordContent(resetUrl);
+    return await sendEmail(email, resetContent.subject, resetContent.text);
+};
+
+exports.sendWelcomeEmail = async (email, resetUrl) => {
+    const welcomeContent = getWelcomeContent(resetUrl);
+    return await sendEmail(email, welcomeContent.subject, welcomeContent.text);
+}
