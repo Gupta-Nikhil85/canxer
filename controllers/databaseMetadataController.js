@@ -2,8 +2,6 @@ const DatabaseMetadata = require('../models/DatabaseMetadata');
 const DBField = require('../models/DBField');
 const Project = require('../models/Project');
 
-// TODO: Create an actual function to create a database table in mongodb
-
 exports.createDatabaseMetadata = async (req, res) => {
     try {
         const dbFields = req.body.attributes;
