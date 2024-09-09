@@ -1,38 +1,81 @@
 const Workflow = require('../models/Workflow');
-const executeWorkflow = require('../utils/workflowExecutor');
 
+// Create a new workflow
 exports.createWorkflow = async (req, res) => {
-    const { resource, name, steps } = req.body;
-
     try {
-        const workflow = await Workflow.create({ resource, name, steps });
-        res.status(201).json(workflow);
+        const { workflowName, endpointId, stepIds } = req.body;
+        const newWorkflow = new Workflow({
+            workflowName,
+            endpointId,
+            steps: stepIds  // Assuming stepIds is an array of Step ObjectIds
+        });
+
+        const savedWorkflow = await newWorkflow.save();
+        res.status(201).json(savedWorkflow);
     } catch (error) {
-        res.status(400).json({ message: 'Error creating workflow' });
+        res.status(500).json({ message: 'Error creating workflow', error: error.message });
     }
 };
 
-exports.getWorkflow = async (req, res) => {
+// Get a workflow by ID
+exports.getWorkflowById = async (req, res) => {
     try {
-        const workflow = await Workflow.findById(req.params.id);
+        const workflow = await Workflow.findById(req.params.id).populate('steps');
         if (!workflow) {
             return res.status(404).json({ message: 'Workflow not found' });
         }
         res.status(200).json(workflow);
     } catch (error) {
-        res.status(400).json({ message: 'Error fetching workflow' });
+        res.status(500).json({ message: 'Error fetching workflow', error: error.message });
     }
 };
 
-exports.executeWorkflow = async (req, res) => {
+// Update a workflow
+exports.updateWorkflow = async (req, res) => {
     try {
-        const workflow = await Workflow.findById(req.params.id);
-        if (!workflow) {
+        const { workflowName, endpointId, stepIds } = req.body;
+        const updatedWorkflow = await Workflow.findByIdAndUpdate(
+            req.params.id,
+            {
+                workflowName,
+                endpointId,
+                steps: stepIds
+            },
+            { new: true }
+        ).populate('steps');
+
+        if (!updatedWorkflow) {
             return res.status(404).json({ message: 'Workflow not found' });
         }
-        const result = await executeWorkflow(workflow, req.body);
-        res.status(200).json(result);
+        res.status(200).json(updatedWorkflow);
     } catch (error) {
-        res.status(400).json({ message: 'Error executing workflow' });
+        res.status(500).json({ message: 'Error updating workflow', error: error.message });
+    }
+};
+
+// Delete a workflow
+exports.deleteWorkflow = async (req, res) => {
+    try {
+        const deletedWorkflow = await Workflow.findByIdAndDelete(req.params.id);
+        if (!deletedWorkflow) {
+            return res.status(404).json({ message: 'Workflow not found' });
+        }
+        res.status(200).json({ message: 'Workflow deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting workflow', error: error.message });
+    }
+};
+
+// Get workflows by endpointId
+exports.getWorkflowsByEndpointId = async (req, res) => {
+    try {
+        const { endpointId } = req.params;
+        const workflows = await Workflow.find({ endpointId }).populate('steps');
+        if (!workflows.length) {
+            return res.status(404).json({ message: 'No workflows found for this endpoint' });
+        }
+        res.status(200).json(workflows);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching workflows', error: error.message });
     }
 };
