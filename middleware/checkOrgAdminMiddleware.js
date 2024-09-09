@@ -14,7 +14,7 @@ const checkOrgAdminMiddleware = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decoded.id).select('-password');
-        if(req.user.role !=="admin" || req.user.organisation.toString() !== req.params.id) {
+        if(req.user.role !=="admin" || req.user.organisation.toString() !== req.params.orgId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
         next();
