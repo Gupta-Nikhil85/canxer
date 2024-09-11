@@ -1,25 +1,26 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendResetEmail, sendWelcomeEmail } = require('../utils/email');
-const { generateResetToken, hashResetToken } = require('../utils/generatePassword');
+const { generateResetToken, hashResetToken, generateRandomPassword } = require('../utils/generatePassword');
 
 // Admin Only
 exports.register = async (req, res) => {
     try {
         const { name, email, role } = req.body;
-        const organisation = req.params.orgId;
+        const organisation = req.query.orgId;
         const existingUser = await User.findOne({ email, organisation });
         if(existingUser) {
             return res.status(400).json({ error: 'User already exists' });
         }
         const resetToken = generateResetToken();
         const hashedToken = hashResetToken(resetToken);
+        const password = generateRandomPassword();
         const user = new User({ name, email, password, role, organisation});
         user.resetPasswordToken = hashedToken; 
         user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; //  60 minutes
         await user.save();
 
-        const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/resetpassword/${resetToken}`;
+        const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${resetToken}`;
         await sendWelcomeEmail(user.email, resetUrl);
 
         res.status(201).json({ success: true, data: "User created" });
@@ -30,7 +31,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const organisation = req.params.orgId;
+        const organisation = req.query.orgId;
         const { email, password } = req.body;
         const user = await User.findOne({ email, organisation });
 
@@ -50,7 +51,7 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const organisation = req.params.orgId;
+        const organisation = req.query.orgId;
         const user = await User.findOne({ email, organisation });
 
         if (!user) {
@@ -63,7 +64,7 @@ exports.forgotPassword = async (req, res) => {
 
         await user.save();
 
-        const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/resetpassword/${resetToken}`;
+        const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${resetToken}`;
 
         await sendResetEmail(user.email, resetUrl);
 
@@ -105,8 +106,8 @@ exports.resetPassword = async (req, res) => {
 exports.getUsers = async (req, res) => {
     try {
         const {limit, page} = req.query;
-        const organisation = req.params.orgId;
-        const users = await User.find({organisation}).limit(limit * 1).skip((page - 1) * limit);
+        const organisation = req.query.orgId;
+        const users = await User.find({organisation}, {password: 0, resetPasswordExpires: 0, resetPasswordToken: 0}).limit(limit * 1).skip((page - 1) * limit);
         res.status(200).json({ success: true, data: users });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -116,8 +117,11 @@ exports.getUsers = async (req, res) => {
 // Get User by ID (Only Admin)
 exports.getUser = async (req, res) => {
     try {
-        const organisation = req.params.orgId;
-        const user = await User.findOne({ _id: req.params.userId, organisation });
+        const organisation = req.query.orgId;
+        const user = await User.findOne({ _id: req.params.userId, organisation }, {password: 0, resetPasswordExpires: 0, resetPasswordToken: 0});
+        if(!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         res.status(200).json({ success: true, data: user });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -127,12 +131,17 @@ exports.getUser = async (req, res) => {
 // Update User by ID (Only Admin)
 exports.updateUser = async (req, res) => {
     try {
-        const organisation = req.params.orgId;
-        const user = await User.findOneAndUpdate({ _id: req.params.userId, organisation }, req.body, {
+        const organisation = req.query.orgId;
+        const { email ,name, role} = req.body;
+        const user = await User.findOneAndUpdate({ _id: req.params.userId, organisation},{name, email, role}, {
             new: true,
             runValidators: true,
         });
-        res.status(200).json({ success: true, data: user });
+        if(!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const userRes = await User.findOne({ _id: req.params.userId, organisation }, {password: 0, resetPasswordExpires: 0, resetPasswordToken: 0});
+        res.status(200).json({ success: true, data: userRes });
     }
     catch (error) {
         res.status(500).json({ error: error.message });
@@ -142,9 +151,14 @@ exports.updateUser = async (req, res) => {
 // Delete User by ID (Only Admin)
 exports.deleteUser = async (req, res) => {
     try {
-        const organisation = req.params.orgId;
-        await User.findOne({ _id: req.params.userId, organisation });
-        res.status(200).json({ success: true, data: {} });
+        // const organisation = req.query.orgId;
+        const user = await User.findOne({ _id: req.params.userId }, {password: 0, resetPasswordExpires: 0, resetPasswordToken: 0});
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await User.findByIdAndDelete(req.params.userId);
+        res.status(200).json({ success: true, data: user });
     }
     catch (error) {
         res.status(500).json({ error: error.message });
@@ -154,8 +168,11 @@ exports.deleteUser = async (req, res) => {
 // Get Current Logged in User
 exports.getCurrentUser = async (req, res) => {
     try {
-        const organisation = req.params.orgId;
-        const user = await User.findOne({ _id: req.user.id, organisation }).select('-password');
+        const organisation = req.query.orgId;
+        const user = await User.findOne({ _id: req.user.id, organisation }, {password: 0, resetPasswordExpires: 0, resetPasswordToken: 0});
+        if(!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         res.status(200).json({ success: true, data: user });
     }
     catch (error) {

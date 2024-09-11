@@ -1,7 +1,7 @@
 const Organisation = require('../models/Organisation');
 const User = require('../models/User');
 const { sendWelcomeEmail } = require('../utils/email');
-const { generateRandomPassword } = require('../utils/generatePassword');
+const { generateRandomPassword, generateResetToken, hashResetToken} = require('../utils/generatePassword');
 
 // Create Organisation
 exports.createOrganisation = async (req, res) => {
@@ -27,11 +27,12 @@ exports.createOrganisation = async (req, res) => {
         });
         await adminUser.save();
         
+        const user = await User.findById(adminUser._id, {password : 0, resetPasswordToken: 0, resetPasswordExpires: 0}).populate('organisation');
         // Send welcome email to the admin user
         const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/resetpassword/${password}`;
         await sendWelcomeEmail(adminUser.email, resetUrl);
 
-        res.status(201).json({ organisation, adminUser });
+        res.status(201).json({ user });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
