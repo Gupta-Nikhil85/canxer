@@ -5,7 +5,8 @@ const User = require('../models/User');
 // Create a Project
 exports.createProject = async (req, res) => {
     try {
-        const { name, description, organisationId} = req.body;
+        const { name, description } = req.body;
+        const organisationId = req.query.orgId;
 
         const organisation = await Organisation.findById(organisationId);
         if (!organisation) {
@@ -33,10 +34,10 @@ exports.createProject = async (req, res) => {
     }
 };
 
-// Get All Projects for an Organisation
+// Get All Projects for an Organisation (ORG admin only)
 exports.getProjects = async (req, res) => {
     try {
-        const organisationId = req.params.id;
+        const organisationId = req.query.orgId;
 
         const projects = await Project.find({ organisation: organisationId });
         res.status(200).json({ projects });
@@ -48,28 +49,27 @@ exports.getProjects = async (req, res) => {
 // Get all Projects where a user has access (not 'none')
 exports.getUserProjects = async (req, res) => {
     try {
-      const userId = req.user.id;
-  
-      // Find all projects where the user's access level is not 'none'
-      const projects = await Project.find({
-        userAccess: {
-          $elemMatch: {
-            user: userId,
-            accessLevel: { $ne: 'none' },
-          },
-        },
-      });
-  
-      if (!projects || projects.length === 0) {
-        return res.status(404).json({ message: 'No projects found for this user.' });
-      }
-  
-      res.status(200).json({ projects });
+        const userId = req.user.id;
+
+        // Find all projects where the user's access level is not 'none'
+        const projects = await Project.find({
+            userAccess: {
+                $elemMatch: {
+                    user: userId,
+                    accessLevel: { $ne: 'none' },
+                },
+            },
+        });
+
+        if (!projects || projects.length === 0) {
+            return res.status(404).json({ message: 'No projects found for this user.' });
+        }
+
+        res.status(200).json({ projects });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
-  };
-  
+};
 
 // Get Project by ID
 exports.getProjectById = async (req, res) => {
@@ -77,7 +77,7 @@ exports.getProjectById = async (req, res) => {
         const projectId = req.params.id;
         const project = await Project.findById(projectId).populate('userAccess.user', 'name email');
 
-        if (!project || (req.user.role !=="admin" && project.userAccess.map((access) => access.user._id.toString()).indexOf(req.user.id) === -1)) {
+        if (!project || (req.user.role !== "admin" && project.userAccess.map((access) => access.user._id.toString()).indexOf(req.user.id) === -1)) {
             return res.status(404).json({ error: 'Project not found' });
         }
 
@@ -91,7 +91,7 @@ exports.getProjectById = async (req, res) => {
 exports.updateProject = async (req, res) => {
     try {
         const projectId = req.params.id;
-        const { name, description, userAccess } = req.body;
+        const { name, description } = req.body;
 
         let project = await Project.findById(projectId);
         if (!project) {
@@ -104,13 +104,13 @@ exports.updateProject = async (req, res) => {
             (access) => access.user.toString() === requestingUser._id.toString()
         );
 
-        if (!access || access.accessLevel !== 'admin') {
+        if (requestingUser.role != "admin" && (!access || access.accessLevel !== 'admin')) {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
         project = await Project.findByIdAndUpdate(
             projectId,
-            { name, description, userAccess },
+            { name, description },
             { new: true, runValidators: true }
         );
 
@@ -127,7 +127,7 @@ exports.addUserAccess = async (req, res) => {
         const { userEmail, accessLevel } = req.body;
 
         let project = await
-        Project.findById(projectId);
+            Project.findById(projectId);
         if (!project) {
             return res.status(404).json({ error: 'Project not found' });
         }
@@ -138,12 +138,12 @@ exports.addUserAccess = async (req, res) => {
             (access) => access.user.toString() === requestingUser._id.toString()
         );
 
-        if (!access || access.accessLevel !== 'admin') {
+        if (requestingUser.role!="admin" && (!access || access.accessLevel !== 'admin')) {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
         // Check if the user exists
-        const  user = await User.findOne({ email : userEmail });
+        const user = await User.findOne({ email: userEmail });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -151,7 +151,7 @@ exports.addUserAccess = async (req, res) => {
 
         // Check if the user already has access to the project
         const existingAccess = project.userAccess.find(
-            (access) => access.user.toString() === userId && access.accessLevel !== 'none'
+            (access) => access.user.toString() === userId
         );
         if (existingAccess && existingAccess.accessLevel === accessLevel) {
             return res.status(400).json({ error: 'User already has access to the project' });
@@ -188,11 +188,11 @@ exports.deleteProject = async (req, res) => {
             (access) => access.user.toString() === requestingUser._id.toString()
         );
 
-        if (!access || access.accessLevel !== 'admin') {
+        if (requestingUser.role!="admin" && (!access || access.accessLevel !== 'admin')) {
             return res.status(403).json({ error: 'Not authorized' });
         }
 
-        await project.remove();
+        await Project.findByIdAndDelete(projectId);
 
         res.status(200).json({ message: 'Project removed' });
     } catch (error) {
