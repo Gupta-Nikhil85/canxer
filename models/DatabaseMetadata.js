@@ -33,7 +33,7 @@ const databaseMetadataSchema = new Schema({
     },
     attributes: [{
         type: Schema.Types.ObjectId,
-        ref: 'Attribute'  // Reference to the Attribute model
+        ref: 'DBField'  // Reference to the Attribute model
     }]
 }, {
     timestamps: true  // Automatically adds createdAt and updatedAt timestamps

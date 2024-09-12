@@ -15,10 +15,11 @@ exports.createDatabaseMetadata = async (req, res) => {
             await dbField.save();
             fieldIds.push(dbField._id);
         }
-        req.body.attributes = fieldIds;
 
         // create the database metadata
-        const databaseMetadata = new DatabaseMetadata(req.body);
+        const {projectId, orgId} = req.query;
+        const {name, version} = req.body;
+        const databaseMetadata = new DatabaseMetadata({name, version, projectId, organisationId: orgId, createdBy: req.user._id, attributes: fieldIds});
         await databaseMetadata.save();
         res.status(201).send(databaseMetadata);
     } catch (error) {
@@ -41,11 +42,11 @@ exports.getDatabaseMetadata = async (req, res) => {
 exports.getAllDatabasesByProjectId = async (req, res) => {
     try {
         // if project exists, return all databases
-        const project = await Project.findById(req.params.projectId);
+        const project = await Project.findById(req.query.projectId);
         if(!project) {
             return res.status(404).send("Project not found");
         }
-        const databases = await DatabaseMetadata.find({ projectId: req.params.projectId }).populate('attributes');
+        const databases = await DatabaseMetadata.find({ projectId: req.query.projectId }).populate('attributes');
         res.send(databases);
     } catch (error) {
         res.status(500).send(error);
@@ -81,7 +82,7 @@ exports.deleteField = async (req, res) => {
         if(!dbField) {
             return res.status(404).send("Field not found");
         }
-        await dbField.remove();
+        await DBField.findByIdAndDelete(req.params.id);
 
         // update the database metadata with the new field
         databaseMetadata.attributes = databaseMetadata.attributes.filter(fieldId => fieldId.toString() !== req.params.fieldId);
@@ -107,7 +108,7 @@ exports.editField = async (req, res) => {
 
 exports.updateDatabaseName = async (req, res) => {
     try {
-        const databaseMetadata = await DatabaseMetadata.findByIdAndUpdate(req.params.id, {name: req.body.name}, { new: true, runValidators: true });
+        const databaseMetadata = await DatabaseMetadata.findByIdAndUpdate(req.params.id, {name: req.body.name}, { new: true, runValidators: true }).populate('attributes');
         if(!databaseMetadata) {
             return res.status(404).send("Database not found");
         }
@@ -125,9 +126,9 @@ exports.deleteDatabase = async (req, res) => {
             return res.status(404).send("Database not found");
         }
         for(const fieldId of databaseMetadata.attributes) {
-            await DBField.findByIdAndRemove(fieldId);
+            await DBField.findByIdAndDelete(fieldId);
         }
-        await databaseMetadata.remove();
+        await DatabaseMetadata.findByIdAndDelete(req.params.id);
         res.send(databaseMetadata);
     } catch (error) {
         res.status(500).send(error);
