@@ -15,6 +15,10 @@ const StepSchema = new Schema({
         of: String,
         default: {}
     },
+    executionOrder: {
+        type: Number,
+        required: true
+    },
     body : {
         type: Object
     },

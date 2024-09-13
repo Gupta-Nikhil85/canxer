@@ -1,18 +1,30 @@
 const Step = require('../models/Step');
+const Workflow = require('../models/Workflow');
 
 // Create a new step linked to a workflow
 exports.createStep = async (req, res) => {
     try {
-        const { stepName, stepType, parameters, workflowId } = req.body;
+        const { stepName, stepType, parameters, body, executionOrder, isActive, workflowId} = req.body;
 
+        const workflow = await Workflow.findById(workflowId);
+        if (!workflow) {
+            return res.status(404).json({ message: 'Workflow not found' });
+        }
+        
         const newStep = new Step({
             stepName,
             stepType,
             parameters,
+            body,
+            executionOrder,
+            isActive,
             workflowId  // Link the step to the workflow
         });
 
         const savedStep = await newStep.save();
+        workflow.steps.push(savedStep._id);
+        await workflow.save();
+
         res.status(201).json(savedStep);
     } catch (error) {
         res.status(500).json({ message: 'Error creating step', error: error.message });
@@ -36,17 +48,10 @@ exports.getStepById = async (req, res) => {
 // Update a step
 exports.updateStep = async (req, res) => {
     try {
-        const { stepName, stepType, parameters, isActive, workflowId } = req.body;
 
         const updatedStep = await Step.findByIdAndUpdate(
             req.params.id,
-            {
-                stepName,
-                stepType,
-                parameters,
-                isActive,
-                workflowId
-            },
+            req.body,
             { new: true }
         );
 
@@ -66,6 +71,14 @@ exports.deleteStep = async (req, res) => {
         if (!deletedStep) {
             return res.status(404).json({ message: 'Step not found' });
         }
+        
+        const workflow = await Workflow.findById(deletedStep.workflowId);
+        if (!workflow) {
+            return res.status(404).json({ message: 'Workflow not found' });
+        }
+        workflow.steps = workflow.steps.filter(stepId => stepId.toString() !== deletedStep._id.toString());
+        await workflow.save();
+
         res.status(200).json({ message: 'Step deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting step', error: error.message });
