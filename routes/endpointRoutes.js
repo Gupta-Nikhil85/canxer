@@ -6,7 +6,7 @@ const { checkProjectWrite, checkProjectRead } = require('../middleware/projectAc
 const router = express.Router();
 
 router.post('/', authMiddleware, checkProjectWrite, createEndpoint);
-router.get('/project/:projectId', authMiddleware, checkProjectRead, getEndpointsByProjectId);
+router.get('/project', authMiddleware, checkProjectRead, getEndpointsByProjectId);
 router.get('/:id', authMiddleware, checkProjectRead, getEndpointById);
 router.put('/:id', authMiddleware, checkProjectWrite, updateEndpoint);
 router.delete('/:id', authMiddleware, checkProjectWrite, deleteEndpoint);

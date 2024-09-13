@@ -12,11 +12,6 @@ const EndpointSchema = new Schema({
     required: true,
     unique: true,  // Ensures the URL is unique
   },
-  workflowId: {
-    type: Schema.Types.ObjectId,  // Linking to the Workflow collection
-    ref: 'Workflow',
-    required: true
-  },
   requestMethod: {
     type: String,
     enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],  // Restricting to common HTTP methods

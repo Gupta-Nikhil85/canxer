@@ -3,7 +3,20 @@ const Endpoint = require('../models/Endpoint');  // Assuming Endpoint model is i
 // Create a new endpoint
 exports.createEndpoint = async (req, res) => {
     try {
-        const newEndpoint = new Endpoint(req.body);  // Create a new Endpoint instance
+        const { projectId } = req.query;
+        const { endpointUrl, requestMethod, headers, queryParams, version, body, responseSchema, description } = req.body;
+
+        const newEndpoint = new Endpoint({
+            projectId,
+            endpointUrl,
+            requestMethod,
+            headers,
+            queryParams,
+            version,
+            body,
+            responseSchema,
+            description
+        });  // Create a new Endpoint instance
         const savedEndpoint = await newEndpoint.save();  // Save it to the database
         res.status(201).json(savedEndpoint);  // Return the created endpoint
     } catch (error) {
@@ -14,7 +27,7 @@ exports.createEndpoint = async (req, res) => {
 // Get all endpoints by projectId
 exports.getEndpointsByProjectId = async (req, res) => {
     try {
-        const { projectId } = req.params;  // Extract projectId from URL params
+        const { projectId } = req.query;  // Extract projectId from URL params
         const endpoints = await Endpoint.find({ projectId });  // Find endpoints by projectId
 
         if (!endpoints.length) {
@@ -27,7 +40,6 @@ exports.getEndpointsByProjectId = async (req, res) => {
     }
 };
 
-
 // Get an endpoint by ID
 exports.getEndpointById = async (req, res) => {
     try {
@@ -38,7 +50,6 @@ exports.getEndpointById = async (req, res) => {
         res.status(500).json({ message: 'Error fetching endpoint', error: error.message });
     }
 };
-
 
 // Update an endpoint
 exports.updateEndpoint = async (req, res) => {
