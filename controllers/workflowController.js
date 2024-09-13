@@ -6,8 +6,7 @@ exports.createWorkflow = async (req, res) => {
         const { workflowName, endpointId, stepIds } = req.body;
         const newWorkflow = new Workflow({
             workflowName,
-            endpointId,
-            steps: stepIds  // Assuming stepIds is an array of Step ObjectIds
+            endpointId
         });
 
         const savedWorkflow = await newWorkflow.save();
@@ -33,14 +32,9 @@ exports.getWorkflowById = async (req, res) => {
 // Update a workflow
 exports.updateWorkflow = async (req, res) => {
     try {
-        const { workflowName, endpointId, stepIds } = req.body;
         const updatedWorkflow = await Workflow.findByIdAndUpdate(
             req.params.id,
-            {
-                workflowName,
-                endpointId,
-                steps: stepIds
-            },
+            req.body,
             { new: true }
         ).populate('steps');
 
