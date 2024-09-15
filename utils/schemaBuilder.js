@@ -42,25 +42,68 @@ const getModelName = (db_name, version, projectId, organisationId) => {
  * @returns {Schema} - A Mongoose schema based on the provided field definitions.
  */
 const getSchemaStructure = (fields) => {
-    const schemaDefinition = {};
+    let schemaDefinition = {};
     fields.forEach(field => {
-        const fieldOptions = {};
-        const { name, type, required, min, max, match, immutable, trim, lowercase, uppercase, set, get, alias, ref, autopopulate, transform } = field;
-        fieldOptions = {
-            required,
-            min,
-            max,
-            match,
-            immutable,
-            trim,
-            lowercase,
-            uppercase,
-            set,
-            get,
-            alias,
-            ref,
-            autopopulate,
-            transform
+        let fieldOptions = {};
+        const { name, type, required, unique, index, sparse, select, validate, min, max, match, immutable, trim, lowercase, uppercase, set, get, alias, ref, autopopulate, transform } = field;
+        // for each field, if the field is not null, add it to the schema definition
+
+        if (required) {
+            fieldOptions.required = required;
+        }
+        if (unique) {
+            fieldOptions.unique = unique;
+        }
+        if (index) {
+            fieldOptions.index = index;
+        }
+        if (sparse) {
+            fieldOptions.sparse = sparse;
+        }
+        if (select) {
+            fieldOptions.select = select;
+        }
+        if (validate) {
+            fieldOptions.validate = validate;
+        }
+        if (min) {
+            fieldOptions.min = min;
+        }
+        if (max) {
+            fieldOptions.max = max;
+        }
+        if (match) {
+            fieldOptions.match = match;
+        }
+        if (immutable) {
+            fieldOptions.immutable = immutable;
+        }
+        if (trim) {
+            fieldOptions.trim = trim;
+        }
+        if (lowercase) {
+            fieldOptions.lowercase = lowercase;
+        }
+        if (uppercase) {
+            fieldOptions.uppercase = uppercase;
+        }
+        if (set) {
+            fieldOptions.set = set;
+        }
+        if (get) {
+            fieldOptions.get = get;
+        }
+        if (alias) {
+            fieldOptions.alias = alias;
+        }
+        if (ref) {
+            fieldOptions.ref = ref;
+        }
+        if (autopopulate) {
+            fieldOptions.autopopulate = autopopulate;
+        }
+        if (transform) {
+            fieldOptions.transform = transform;
         }
         fieldOptions.type = global[type];
         fieldOptions.default = field.default;
@@ -78,7 +121,7 @@ const getSchemaStructure = (fields) => {
  * 
  * @throws {Error} - Throws an error if the database metadata cannot be found or if an error occurs while creating the model.
  */
-module.exports.getMongooseSchema = async (model_id) => {
+module.exports = async (model_id) => {
     try {
         const dbMetadata = await DatabaseMetadata.findById(model_id).populate('attributes');
         if (!dbMetadata) {
@@ -90,7 +133,6 @@ module.exports.getMongooseSchema = async (model_id) => {
         const schema = getSchemaStructure(attributes);
         return mongoose.model(modelName, schema);
     } catch (error) {
-        console.log(error);
         throw error; // Added to ensure errors are properly propagated
     }
 }

@@ -1,4 +1,4 @@
-const getMongooseSchema = require("./schemaBuilder");
+const schemaBuilder = require("./schemaBuilder");
 
 // Enum for query types to standardize the operation names
 const QueryEnum = {
@@ -35,7 +35,7 @@ const QueryEnum = {
  * @returns {Promise} The result of the find query.
  */
 const generateFindQuery = (model, query) => {
-    const { filter, projection, sort = {}, limit = 0, skip = 0 } = query;
+    const { filter = {}, projection = {}, sort = {}, limit = 0, skip = 0 } = query;
     return model.find({ ...filter }, { ...projection }).sort({ ...sort }).limit(limit).skip(skip);
 }
 
@@ -227,11 +227,10 @@ const generateDeleteQuery = (model, query) => {
  * 
  * @throws {Error} Throws an error if the query type is unknown or if an error occurs.
  */
-module.exports.runQuery = async (model_id, query) => {
+module.exports = async (model_id, query) => {
     try {
         // Get the schema/model using the model_id
-        const model = await getMongooseSchema(model_id);
-
+        const model = await schemaBuilder(model_id);
         // Switch-case to determine which query to run based on query.type
         switch (query.type) {
             case QueryEnum.FIND:

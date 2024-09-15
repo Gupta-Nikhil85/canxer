@@ -1,4 +1,4 @@
-const runQuery = require('./queryExecutor');
+const queryExecutor = require('./queryExecutor');
 
 const StepEnum = {
     QUERY: 'query',
@@ -9,14 +9,24 @@ const StepEnum = {
 };
 
 module.exports = async (workflow, input) => {
-    const context = { ...input };
+    let context = { ...input };
+    // console.log('Executing workflow:', workflow.workflowName);
+    const steps = workflow.steps.filter((ele) => ele.isActive === true).sort((a, b) => a.executionOrder - b.executionOrder);
+    console.log('Steps:', workflow.steps);
+    
+    // TODO: first step should be to set some data.
 
-    for (const step of workflow.steps) {
+    for (const step of steps) {
         try {
-            switch (step.type) {
+            switch (step.stepType) {
                 case StepEnum.QUERY:
-                    const {model_id, query} = step.parameters;
-                    const result = await runQuery(model_id, query);
+                    const {model_id, query} = step.body;
+                    query.document = context;
+                    query.documents = context;
+                    query.update = context;
+                    // console.log('Executing query:', query);
+                    // console.log('Model ID:', model_id);
+                    context = await queryExecutor(model_id, query);
                     // Implement your logic to handle queries
                     // e.g., execute a MongoDB query based on `step.parameters`
                     break;
