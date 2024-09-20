@@ -4,7 +4,7 @@ const Workflow = require('../models/Workflow');
 // Create a new step linked to a workflow
 exports.createStep = async (req, res) => {
     try {
-        const { stepName, stepType, parameters, body, executionOrder, isActive, workflowId} = req.body;
+        const { stepName, stepType, dependsOn, config, onSuccess, onFailure, isActive, workflowId} = req.body;
 
         const workflow = await Workflow.findById(workflowId);
         if (!workflow) {
@@ -14,9 +14,10 @@ exports.createStep = async (req, res) => {
         const newStep = new Step({
             stepName,
             stepType,
-            parameters,
-            body,
-            executionOrder,
+            dependsOn,
+            config,
+            onSuccess,
+            onFailure,
             isActive,
             workflowId  // Link the step to the workflow
         });
@@ -34,7 +35,7 @@ exports.createStep = async (req, res) => {
 // Get a step by ID
 exports.getStepById = async (req, res) => {
     try {
-        const step = await Step.findById(req.params.id).populate('workflowId');
+        const step = await Step.findById(req.params.id);
         if (!step) {
             return res.status(404).json({ message: 'Step not found' });
         }

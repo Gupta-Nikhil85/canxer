@@ -1,6 +1,7 @@
-// TODO: while creating an endpoint,make sure it starts with a / and does not end with a /
-
 const Endpoint = require('../models/Endpoint');
+const { convertEndpoint } = require('../utils/endpoint.utils');
+
+// TODO: maybe we can add more validation to the endpoint URL based on the meta fields in the database
 
 const validateEndpoint = async(req, res, next) =>{
 try{
@@ -8,7 +9,7 @@ try{
     console.log('Validating endpoint...');
     
     const version = req.params.version; // Extract version from URL
-    const endpointUrl = `/${req.params[0]}`; // Extract additional path if any
+    const endpointUrl = convertEndpoint(req.params[0]); // Extract additional path if any
     const projectId = req.query.projectId; // Extract projectId from query parameters
     const method = req.method; // HTTP method (GET, POST, etc.)
     
@@ -27,7 +28,8 @@ try{
         projectId,
         endpointUrl,
         requestMethod: method,
-        version
+        version,
+        isActive: true
     });
 
     if (!endpoint) {

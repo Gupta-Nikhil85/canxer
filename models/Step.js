@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const {StepTypes} = require('../utils/enums');  // Import the StepTypes enum
 
 const StepSchema = new Schema({
     stepName: {
@@ -7,24 +8,41 @@ const StepSchema = new Schema({
         required: true
     },
     stepType: {
-        type: String,  // Example types: 'API_CALL', 'DATA_TRANSFORM', 'CONDITIONAL', etc.
+        type: String,
+        enum: Object.values(StepTypes),  // Use the enum here for allowed step types
         required: true
     },
-    parameters: {
-        type: Map,  // Key-value pairs for the step configuration
-        of: String,
-        default: {}
+    dependsOn: {
+        type: String,
+        default: null  // Step ID that this step depends on
     },
-    executionOrder: {
-        type: Number,
+    config: {
+        type: mongoose.Schema.Types.Mixed,  // Configuration for the step (API params, condition, etc.)
         required: true
     },
-    body : {
-        type: Object
+    onSuccess: {
+        continue: {
+            type: Boolean,
+            default: true
+        },
+        nextStepId: {
+            type: String,
+            default: null  // The step to continue if this step is successful
+        }
+    },
+    onFailure: {
+        retry: {
+            type: Boolean,
+            default: false
+        },
+        fallbackStepId: {
+            type: String,
+            default: null  // Fallback step if this step fails
+        }
     },
     isActive: {
         type: Boolean,
-        default: true
+        default : true
     },
     workflowId: {
         type: Schema.Types.ObjectId,

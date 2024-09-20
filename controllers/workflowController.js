@@ -3,7 +3,12 @@ const Workflow = require('../models/Workflow');
 // Create a new workflow
 exports.createWorkflow = async (req, res) => {
     try {
-        const { workflowName, endpointId, stepIds } = req.body;
+        const { workflowName, endpointId } = req.body;
+        const existingWorkflow = await workflow.findOne({ endpointId: endpointId , isActive: true });
+        if (existingWorkflow) {
+            return res.status(400).json({ message: 'A workflow already exists for this endpoint' });
+        }
+        
         const newWorkflow = new Workflow({
             workflowName,
             endpointId
@@ -32,6 +37,11 @@ exports.getWorkflowById = async (req, res) => {
 // Update a workflow
 exports.updateWorkflow = async (req, res) => {
     try {
+        const workflow = await Workflow.findById(req.params.id);
+        if (workflow && workflow.isActive) {
+            return res.status(400).json({ message: 'Workflow is active' });
+        }
+
         const updatedWorkflow = await Workflow.findByIdAndUpdate(
             req.params.id,
             req.body,
@@ -50,6 +60,10 @@ exports.updateWorkflow = async (req, res) => {
 // Delete a workflow
 exports.deleteWorkflow = async (req, res) => {
     try {
+        const workflow = await Workflow.findById(req.params.id);
+        if (workflow && workflow.isActive) {
+            return res.status(400).json({ message: 'Workflow is active' });
+        }
         const deletedWorkflow = await Workflow.findByIdAndDelete(req.params.id);
         if (!deletedWorkflow) {
             return res.status(404).json({ message: 'Workflow not found' });
