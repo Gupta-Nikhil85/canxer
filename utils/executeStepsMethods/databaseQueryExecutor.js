@@ -1,4 +1,4 @@
-const schemaBuilder = require("./schemaBuilder");
+const schemaBuilder = require("../schemaBuilder");
 
 // Enum for query types to standardize the operation names
 const QueryEnum = {
@@ -191,46 +191,37 @@ const generateDeleteQuery = (model, query) => {
 
 // Main function to execute the correct query based on query type
 
+
 /**
- * Executes a query based on the provided query type and parameters.
+ * Executes a database operation based on the provided configuration.
  * 
- * @param {string} model_id - The ID of the model/schema to use.
- * @param {Object} query - The query parameters.
- * @param {string} query.type - The type of query to run (e.g., find, findOne, insert, etc.).
- * @param {Object} [query.filter] - Conditions to match documents. Used for find, findOne, update, updateMany, and delete queries.
- * @param {Object} [query.projection] - Fields to include or exclude in results. Used for find and findOne queries.
- * @param {Object} [query.sort] - Fields to sort the result set. Used for find queries.
- * @param {number} [query.limit] - Maximum number of documents to return. Used for find queries.
- * @param {number} [query.skip] - Number of documents to skip in the result set. Used for find queries.
- * @param {Object} [query.document] - Document to be inserted. Used for insert queries.
- * @param {Array} [query.documents] - Array of documents to be inserted. Used for insertMany queries.
- * @param {Object} [query.update] - Fields to update in the matched documents. Used for update and updateMany queries.
- * @param {Object} [query.options] - Options for the update operation. Used for update and updateMany queries. Example:
- *   { multi: true } // Update multiple documents
- *   { upsert: true } // Insert a new document if no match is found
- * @param {Array} [query.pipeline] - Array of aggregation stages to perform. Used for aggregation queries.
- * @param {string} [query.field] - The field for which to retrieve distinct values. Used for distinct queries.
- * @param {Object} [query.on_failure] - Optional failure handling parameters.
- * @param {string} [query.on_failure.error_message] - Custom error message to throw if the query fails.
+ * @param {Object} config - The configuration object.
+ * @param {string} config.model_id - The ID of the model/schema to use.
+ * @param {Object} config.query - The query parameters.
+ * @param {string} config.query.type - The type of query to run (e.g., find, findOne, insert, etc.).
+ * @param {Object} [config.query.filter] - Conditions to match documents.
+ * @param {Object} [config.query.projection] - Fields to include or exclude in results.
+ * @param {Object} [config.query.sort] - Fields to sort the result set.
+ * @param {number} [config.query.limit] - Maximum number of documents to return.
+ * @param {number} [config.query.skip] - Number of documents to skip in the result set.
+ * @param {Object} [config.query.document] - Document to be inserted.
+ * @param {Array} [config.query.documents] - Array of documents to be inserted.
+ * @param {Object} [config.query.update] - Fields to update in the matched documents.
+ * @param {Object} [config.query.options] - Options for the update operation.
+ * @param {Array} [config.query.pipeline] - Array of aggregation stages to perform.
+ * @param {string} [config.query.field] - The field for which to retrieve distinct values.
+ * @param {Object} [config.query.on_failure] - Optional failure handling parameters.
+ * @param {string} [config.query.on_failure.error_message] - Custom error message to throw if the query fails.
  * 
- * @returns {Promise<Array<Document> | Document | Object | null>} - The result of the executed query:
- *   - For `find` queries: `Promise<Array<Document>>` - An array of documents that match the query.
- *   - For `findOne` queries: `Promise<Document | null>` - A single document that matches the query, or `null` if no document matches.
- *   - For `insert` queries: `Promise<Document>` - The created document.
- *   - For `insertMany` queries: `Promise<Array<Document>>` - An array of inserted documents.
- *   - For `update` queries: `Promise<Object>` - An object containing information about the update operation, such as the number of documents matched and modified.
- *   - For `updateMany` queries: `Promise<Object>` - Similar to `update`, an object with information about the update operation.
- *   - For `aggregation` queries: `Promise<Array<Document>>` - An array of documents resulting from the aggregation pipeline.
- *   - For `delete` queries: `Promise<Object>` - An object containing information about the delete operation, such as the number of documents deleted.
- *   - For `distinct` queries: `Promise<Array<any>>` - An array of distinct values for the specified field.
- *   - For `count` queries: `Promise<number>` - The count of documents that match the filter.
+ * @returns {Promise<Array<Document> | Document | Object | null>} - The result of the executed query.
  * 
  * @throws {Error} Throws an error if the query type is unknown or if an error occurs.
  */
-module.exports = async (model_id, query) => {
+const executeDatabaseOperation = async (config) => {
     try {
         // Get the schema/model using the model_id
-        const model = await schemaBuilder(model_id);
+        const model = await schemaBuilder(config.model_id);
+        const query = config.query;
         // Switch-case to determine which query to run based on query.type
         switch (query.type) {
             case QueryEnum.FIND:
@@ -254,49 +245,14 @@ module.exports = async (model_id, query) => {
             case QueryEnum.COUNT:
                 return await generateCountQuery(model, query);
             default:
-                // If the query type is unknown, throw an error
                 throw new Error(`Unknown query type: ${query.type}`);
         }
     } catch (error) {
-        // Handle failure scenario if on_failure condition exists in query
         if (query.on_failure && query.on_failure.error_message) {
             throw new Error(query.on_failure.error_message);
         }
         throw error;
     }
-}
+};
 
-
-// TODO: Add solution for array operators like $all, $elemMatch, $size
-// Example: db.collection.find({ tags: { $all: ["mongodb", "database"] } })
-
-// TODO: Add text search capabilities for full-text search
-// Example: db.collection.find({ $text: { $search: "mongodb" } })
-
-// TODO: Add support for geospatial queries like $geoWithin, $near, $nearSphere
-// Example: db.collection.find({ location: { $near: { $geometry: { type: "Point", coordinates: [ 40, 5 ] }, $maxDistance: 5000 } } })
-
-// TODO: Add map-reduce functionality for large datasets
-// Example:
-// db.collection.mapReduce(
-//   function() { emit(this.city, this.age); },
-//   function(key, values) { return Array.avg(values); },
-//   { out: "avg_age_per_city" }
-// )
-
-// TODO: Add change streams for watching real-time changes in collections
-// Example:
-// const changeStream = db.collection.watch();
-// changeStream.on("change", function(change) {
-//   console.log(change);
-// });
-
-// TODO: Add bulkWrite for multiple write operations in one request
-// Example:
-// db.collection.bulkWrite([
-//   { insertOne: { document: { name: "Alice", age: 28 } } },
-//   { updateOne: { filter: { name: "John" }, update: { $set: { age: 40 } } } }
-// ])
-
-// TODO: Add explain query to return the execution plan of a query
-// Example: db.collection.find({ age: { $gt: 25 } }).explain()
+module.exports = {executeDatabaseOperation};

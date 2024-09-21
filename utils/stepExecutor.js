@@ -1,9 +1,13 @@
 const { StepTypes } = require("../utils/enums");
 const { executeApiCall } = require("./executeStepsMethods/apiCallExecutor");
-const queryExecutor = require("./queryExecutor");
 const { resolvePlaceholders } = require("./executeStep.utils");
 const { executeCondition } = require("./executeStepsMethods/conditionExecutor");
 const { executeTransformation } = require("./executeStepsMethods/transformationExecutor");
+const { executeLoop } = require("./executeStepsMethods/loopExecutor");
+const { executeParallelExecution } = require("./executeStepsMethods/parallelExecutionExecutor");
+const { executeDatabaseOperation } = require("./executeStepsMethods/databaseQueryExecutor");
+const { executeNotification } = require("./executeStepsMethods/notificationExecutor");
+const { executeFileOperation } = require("./executeStepsMethods/fileOperationExecutor");
 
 const executeStep = async (step, context) => {
   try {
@@ -16,28 +20,29 @@ const executeStep = async (step, context) => {
         break;
 
       case StepTypes.CONDITION:
-        result = executeCondition(resolvedConfig, stepResults);
+        result = executeCondition(resolvedConfig);
         step.onSuccess.nextStepId = result;
         break;
 
       case StepTypes.TRANSFORMATION:
-        result = await executeTransformation(resolvedConfig, stepResults);
+        result = executeTransformation(resolvedConfig);
         break;
 
       case StepTypes.LOOP:
-        result = await executeLoop(resolvedConfig, stepResults);
+        result = await executeLoop(resolvedConfig, context);
         break;
 
       case StepTypes.PARALLEL_EXECUTION:
-        result = await executeParallelExecution(resolvedConfig, stepResults);
+        result = await executeParallelExecution(resolvedConfig);
         break;
 
       case StepTypes.DELAY:
-        result = await executeDelay(resolvedConfig);
+        result = executeDelay(resolvedConfig);
         break;
 
       case StepTypes.WEBHOOK_LISTENER:
-        result = await executeWebhookListener(resolvedConfig);
+        result = "Webhook listener not implemented";
+        // result = await executeWebhookListener(resolvedConfig);
         break;
 
       case StepTypes.DB_OPERATION:
@@ -53,19 +58,23 @@ const executeStep = async (step, context) => {
         break;
 
       case StepTypes.DATA_VALIDATION:
-        result = await executeDataValidation(resolvedConfig, stepResults);
+        result = "Data validation not implemented";
+        // result = await executeDataValidation(resolvedConfig, stepResults);
         break;
 
       case StepTypes.ERROR_HANDLING:
-        result = await executeErrorHandling(resolvedConfig, stepResults);
+        result = "Error handling not implemented";
+        // result = await executeErrorHandling(resolvedConfig, stepResults);
         break;
 
       case StepTypes.AUTHENTICATION:
-        result = await executeAuthentication(resolvedConfig);
+        result = "Authentication not implemented";
+        // result = await executeAuthentication(resolvedConfig);
         break;
 
       case StepTypes.WEBHOOK_TRIGGER:
-        result = await executeWebhookTrigger(resolvedConfig);
+        result = "Webhook trigger not implemented";
+        // result = await executeWebhookTrigger(resolvedConfig);
         break;
 
       default:
